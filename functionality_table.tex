@@ -16,14 +16,22 @@
 \hline
 Operation & ARGneedle-lib & matUtils (BTE) & DendroPy \\
 \hline
-\SetCell[c=4]{c} \textbf{Data model and I/O}\\
+\SetCell[c=4]{c} \textbf{Data model}\\
 \hline[dashed]
-Succinct tree-sequence file format & & & \\
-Table-based data API & & & \\
-VCF import/export & & \checkmark & \\
+Lossless ARG representation & \checkmark & & \\
+Mutations integrated with topology & \checkmark & \checkmark & \\
+Integrated reference sequence & & & \\
+Individual / ploidy abstraction & $\circ$ & & \\
+Population structure encoding & & & \\
+Columnar (NumPy) data access & & & \\
+\hline[dashed]
+\SetCell[c=4]{c} \textbf{File formats}\\
+\hline[dashed]
+Efficient binary format & \checkmark & \checkmark & \\
+VCF export & & \checkmark & \\
 Newick export & \checkmark & \checkmark & \checkmark \\
-FASTA / alignment export & & \checkmark & \checkmark \\
-NEXUS / NeXML I/O & & & \checkmark \\
+FASTA export & & & \checkmark \\
+NEXUS export & & & \checkmark \\
 \hline[dashed]
 \SetCell[c=4]{c} \textbf{Tree operations}\\
 \hline[dashed]

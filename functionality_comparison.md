@@ -33,78 +33,177 @@ caveats relative to the tskit equivalent.
 
 ---
 
-## 1. Data model and I/O
+## 1. Data model
 
-### Succinct tree-sequence file format
-- **tskit (✓):** the `.trees` file format and underlying
-  `TableCollection` are defined by tskit; load/save via
-  [`TreeSequence.dump`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.dump)
-  and [`tskit.load`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.load).
-- **ARGneedle-lib (blank):** uses its own `.argn` HDF5-based ARG
-  format (`arg_needle_lib.serialize_arg` /
-  `arg_needle_lib.deserialize_arg`); not interchangeable with the tskit
-  succinct format although `arg_to_tskit`/`tskit_to_arg` exist.
-- **matUtils/BTE (blank):** uses the UShER mutation-annotated tree
-  protobuf (`.pb`) via `MATree.from_pb`/`MATree.save_pb`; entirely
-  unrelated to tree sequences.
-- **DendroPy (blank):** in-memory `dendropy.Tree`/`TreeList` with
-  Newick/NEXUS/NeXML serialization; no succinct binary format.
+This section is about properties of the in-memory data structure
+each library exposes — what biological entities can be represented
+and how they are accessed in code. File-format concerns are in
+section 2 (file formats).
 
-### Table-based data API
-- **tskit (✓):** [`tskit.TableCollection`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TableCollection)
-  exposes Node, Edge, Site, Mutation, Migration, Individual,
-  Population, and Provenance tables as first-class editable objects.
-- **ARGneedle-lib (blank):** ARG is a node/edge graph; no table API.
-- **matUtils/BTE (blank):** node-pointer tree (`MATNode`); no table
-  abstraction.
-- **DendroPy (blank):** object graph of `Tree`/`Node`/`Edge`; no
-  table abstraction.
+### Lossless ARG representation
+- **tskit (✓):** the tree-sequence data model encodes a full
+  ancestral recombination graph as a shared-edge structure. See
+  [`tskit.TreeSequence`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence)
+  and the data-model overview at
+  <https://tskit.dev/tskit/docs/stable/data-model.html>.
+- **ARGneedle-lib (✓):** the headline data structure of the
+  library; the `arg_needle_lib.ARG` class stores a full
+  recombination graph and supports round-tripping via
+  `serialize_arg` / `deserialize_arg`.
+- **matUtils/BTE (blank):** the MAT data model is a single
+  phylogeny — there is no notion of recombination or alternative
+  topologies along a genome.
+- **DendroPy (blank):** stores a `Tree` or `TreeList`; no ARG
+  data structure.
 
-### VCF import/export
+### Mutations integrated with topology
+- **tskit (✓):** the
+  [Site](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.SiteTable)
+  and
+  [Mutation](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.MutationTable)
+  tables are first-class members of `TableCollection`; mutations
+  are anchored to specific edges and inherited by descendants
+  during tree traversal.
+- **ARGneedle-lib (✓):** mutations are an intrinsic part of the
+  ARG; `generate_mutations`, `get_mutations_matrix`, and
+  `get_genotype` (in `arg_needle_lib_pybind.cpp`) operate on
+  mutations attached to ARG edges.
+- **matUtils/BTE (✓):** mutation annotation is the entire point of
+  the data model — `MATNode.mutations` is a first-class node
+  property and the protobuf format encodes per-edge mutations
+  natively.
+- **DendroPy (blank):** sequence/character data lives in a separate
+  `CharacterMatrix` keyed by taxon; mutations are not anchored to
+  tree edges and traversal does not propagate them.
+
+### Integrated reference sequence
+- **tskit (✓):**
+  [`TreeSequence.reference_sequence`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.reference_sequence)
+  /
+  [`has_reference_sequence`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.has_reference_sequence)
+  and
+  [`TableCollection.reference_sequence`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TableCollection.reference_sequence)
+  store the reference inside the data structure itself, alongside
+  schema metadata.
+- **ARGneedle-lib (blank):** no reference-sequence concept anywhere
+  in the pybind layer or Python wrappers.
+- **matUtils/BTE (blank):** the reference is supplied as an
+  *external* `--input-fasta` (`-f`) argument to `matUtils summary`
+  and `matUtils extract` — see `lib_docs/matutils.rst` lines 142
+  and 246. It is not stored inside the protobuf.
+- **DendroPy (blank):** no reference concept.
+
+### Individual / ploidy abstraction
+- **tskit (✓):** the
+  [`IndividualTable`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.IndividualTable)
+  groups one or more sample nodes under a single biological
+  individual, capturing ploidy directly. This makes diploids,
+  pedigrees, and family-structured simulations first-class.
+- **ARGneedle-lib (◐):** there is no individual table, but the
+  Python API has diploid-aware helpers — `exact_arg_grm` and
+  `monte_carlo_arg_grm` accept a `diploid=True` flag, and
+  `haploid_grm_to_diploid` (in `lib_docs/argneedle_grm.py` lines
+  26–37) pairs neighbouring sample IDs as a haploid couple.
+  Counted as partial because the convention is implicit.
+- **matUtils/BTE (blank):** `MATNode` is a single-leaf abstraction;
+  no individual or ploidy concept. (The word "individual" appears
+  in `lib_docs/bte.pyx` only in unrelated docstrings.)
+- **DendroPy (blank):** `Taxon` and `TaxonNamespace` carry labels
+  but there is no individual-vs-sample distinction.
+
+### Population structure encoding
+- **tskit (✓):** the
+  [`PopulationTable`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.PopulationTable)
+  stores population assignments inside the data structure, and the
+  population-aware statistics (Fst, divergence, joint AFS) consume
+  it directly.
+- **ARGneedle-lib (blank):** samples are a flat haploid list; no
+  population concept in the pybind layer.
+- **matUtils/BTE (blank):** matUtils accepts geographic
+  region annotations as an external TSV (used by `introduce`) but
+  the MAT data structure itself has no population concept.
+- **DendroPy (blank):** population labels can be encoded as taxon
+  labels and passed externally to `popgenstat`, but they are not
+  a typed part of the tree data structure.
+
+### Columnar (NumPy) data access
+- **tskit (✓):** every column of every Table is a NumPy array
+  (`nodes.time`, `edges.left`, `edges.right`, `mutations.node`,
+  …). This enables vectorised bulk operations and underpins much
+  of tskit's performance.
+- **ARGneedle-lib (blank):** the ARG is a C++ node-pointer object
+  exposed through per-node Python wrappers; no NumPy column views.
+- **matUtils/BTE (blank):** `MATNode` is a per-node wrapper around
+  the underlying C++ object; tree-wide attributes are accessed
+  by traversal, not bulk array.
+- **DendroPy (blank):** the `Tree`/`Node`/`Edge` graph is a pure
+  Python object hierarchy.
+
+---
+
+## 2. File formats
+
+This section is about which named on-disk file formats each library
+can read or write, including each library's *native* binary
+serialization format.
+
+### Efficient binary format
+- **tskit (✓):** the `.trees` file format
+  (kastore-backed) loaded via [`tskit.load`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.load)
+  and written via
+  [`TreeSequence.dump`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.dump).
+- **ARGneedle-lib (✓):** `.argn` HDF5 format via
+  `arg_needle_lib.serialize_arg` / `deserialize_arg`.
+- **matUtils/BTE (✓):** UShER mutation-annotated tree protobuf
+  (`.pb`) via `matUtils extract --write-pb` and
+  `MATree.save_pb` / `MATree.from_pb`.
+- **DendroPy (blank):** all on-disk formats are text
+  (Newick, NEXUS, NeXML, PHYLIP, FASTA).
+
+### VCF export
 - **tskit (✓):** [`TreeSequence.write_vcf`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.write_vcf)
   and [`TreeSequence.as_vcf`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.as_vcf).
-- **ARGneedle-lib (blank):** no direct VCF I/O; users convert to
-  tskit and call `write_vcf`. The library does consume HAPS/SAMPLE
-  for ARG inference but does not write VCF.
+- **ARGneedle-lib (blank):** no VCF writer in the pybind or
+  wrapper layers; users round-trip via `arg_to_tskit` and call
+  `write_vcf` from tskit.
 - **matUtils/BTE (✓):** `matUtils extract --write-vcf` and
-  [`MATree.write_vcf`](https://github.com/jmcbroome/BTE/blob/main/src/bte.pyx)
-  emit VCF; `MATree.from_newick_and_vcf` and
-  `MATree(... vcf=...)` ingest VCF as input genotypes.
-- **DendroPy (blank):** no VCF reader or writer; character-data
-  schemas are FASTA/PHYLIP/NEXUS only.
+  `MATree.write_vcf` (`lib_docs/bte.pyx`).
+- **DendroPy (blank):** no VCF reader or writer.
 
 ### Newick export
 - **tskit (✓):** [`Tree.as_newick`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.as_newick)
   and [`TreeSequence.as_newick`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.as_newick).
-- **ARGneedle-lib (✓):** `arg_needle_lib.arg_to_newick` (the binding
-  is registered as `arg_to_newwick` in the pybind layer).
+- **ARGneedle-lib (✓):** `arg_needle_lib.arg_to_newick` (registered
+  in the pybind layer as `arg_to_newwick`).
 - **matUtils/BTE (✓):** `matUtils extract --write-newick`;
   `MATree.get_newick` / `MATree.write_newick`.
-- **DendroPy (✓):** `Tree.write(path=..., schema="newick")` and
+- **DendroPy (✓):** `Tree.write(schema="newick")` and
   `Tree.as_string(schema="newick")`.
 
-### FASTA / alignment export
+### FASTA export
 - **tskit (✓):** [`TreeSequence.as_fasta`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.as_fasta)
   / [`write_fasta`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.write_fasta)
   and [`TreeSequence.alignments`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.alignments).
 - **ARGneedle-lib (blank):** no FASTA writer.
-- **matUtils/BTE (blank):** `matUtils extract` outputs Newick, VCF,
-  JSON, Taxodium, or protobuf — no FASTA target. (BTE can reconstruct
-  haplotype mutation sets via `get_haplotype` but does not assemble
-  full reference-anchored sequences.)
-- **DendroPy (✓):** `CharacterMatrix.write(schema="fasta")` /
-  `read(schema="fasta")` for any sequence character matrix.
+- **matUtils/BTE (blank):** the six FASTA mentions in the matUtils
+  documentation (`lib_docs/matutils.rst` lines 59, 63, 122, 142,
+  186, 246) are *all* references to the input reference FASTA
+  consumed by `--translate` and `--write-taxodium`. Line 186
+  explicitly tells users to convert a matUtils-emitted VCF to FASTA
+  via the external `vcf2fasta` tool. BTE's `bte.pyx` has no FASTA
+  writer either.
+- **DendroPy (✓):** `CharacterMatrix.write(schema="fasta")`.
 
-### NEXUS / NeXML I/O
+### NEXUS export
 - **tskit (blank):** not supported.
 - **ARGneedle-lib (blank):** not supported.
 - **matUtils/BTE (blank):** not supported.
-- **DendroPy (✓):** first-class NEXUS and NeXML readers/writers via
-  the unified `read`/`write` schemas.
+- **DendroPy (✓):** first-class NEXUS reader/writer via the
+  unified `read` / `write` schemas (NeXML is also supported).
 
 ---
 
-## 2. Tree operations
+## 3. Tree operations
 
 ### Iterate trees along a genome
 - **tskit (✓):** [`TreeSequence.trees`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.trees)
@@ -183,7 +282,7 @@ caveats relative to the tskit equivalent.
 
 ---
 
-## 3. Tree-sequence editing
+## 4. Tree-sequence editing
 
 ### Simplify (sample-restricted history)
 - **tskit (✓):** [`TreeSequence.simplify`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.simplify).
@@ -233,7 +332,7 @@ caveats relative to the tskit equivalent.
 
 ---
 
-## 4. Population-genetic statistics
+## 5. Population-genetic statistics
 
 ### Nucleotide diversity (π), segregating sites
 - **tskit (✓):** [`TreeSequence.diversity`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.diversity)
@@ -303,7 +402,7 @@ caveats relative to the tskit equivalent.
 
 ---
 
-## 5. Ancestry and relatedness
+## 6. Ancestry and relatedness
 
 ### IBD segment extraction
 - **tskit (✓):** [`TreeSequence.ibd_segments`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.ibd_segments)
@@ -363,7 +462,7 @@ caveats relative to the tskit equivalent.
 
 ---
 
-## 6. Mutations and variants
+## 7. Mutations and variants
 
 ### Variant / genotype iteration
 - **tskit (✓):** [`TreeSequence.variants`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.variants)
@@ -405,7 +504,7 @@ caveats relative to the tskit equivalent.
 
 ---
 
-## 7. Visualization
+## 8. Visualization
 
 ### SVG tree drawing
 - **tskit (✓):** [`Tree.draw_svg`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.draw_svg)
@@ -434,7 +533,7 @@ caveats relative to the tskit equivalent.
 
 ---
 
-## 8. Metadata and provenance
+## 9. Metadata and provenance
 
 ### Structured metadata with schemas
 - **tskit (✓):** [`tskit.MetadataSchema`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.MetadataSchema)
@@ -457,57 +556,3 @@ caveats relative to the tskit equivalent.
 - **ARGneedle-lib (blank):** not exposed.
 - **matUtils/BTE (blank):** not exposed.
 - **DendroPy (blank):** not exposed.
-
----
-
-## Corrections applied to `functionality_table.tex`
-
-The following cells in `functionality_table.tex` were corrected from
-the first-pass draft after the deep-dive above. Each entry lists the
-row, the column, the old marker → the new marker, and a one-line
-reason.
-
-- **Newick export / ARGneedle-lib:** blank → ✓ — `arg_to_newick` is
-  exposed in the pybind layer.
-- **Iterate trees along a genome / ARGneedle-lib:** ✓ → ◐ — no
-  Python iterator over local trees; users go via `arg_to_tskit`.
-- **Tree traversal / ARGneedle-lib:** ✓ → ◐ — same reason.
-- **Branch length / ARGneedle-lib:** ✓ → ◐ — derivable from node
-  times but no per-edge accessor in the Python API.
-- **Tree topology comparison / ARGneedle-lib:** blank → ✓ —
-  `kc_topology` and the `metrics` module compute KC² and scaled RF.
-- **Tree topology comparison / matUtils (BTE):** ◐ → blank — no
-  RF/KC implementation in matUtils or BTE.
-- **Tree balance and shape / matUtils (BTE):** blank → ◐ —
-  `tree_entropy` and `count_clades_inclusive` provide partial
-  shape information.
-- **Subset by sample or clade / ARGneedle-lib:** ◐ → blank — no
-  native subset operation.
-- **Trim flanking regions / ARGneedle-lib:** blank → ✓ — `trim_arg`.
-- **Keep / delete genomic intervals / ARGneedle-lib:** blank → ◐ —
-  `trim_arg` covers a single contiguous interval.
-- **Nucleotide diversity / matUtils (BTE):** blank → ◐ — BTE's
-  `compute_nucleotide_diversity` returns mean π only.
-- **Nucleotide diversity / DendroPy:** blank → ✓ — full popgenstat
-  module.
-- **Tajima's D / DendroPy:** blank → ✓ — `popgenstat.tajimas_d`.
-- **Allele frequency spectrum / DendroPy:** blank → ◐ — 1D unfolded
-  SFS only.
-- **IBD segment extraction / ARGneedle-lib:** ✓ → ◐ — only via
-  `arg_to_tskit` round-trip.
-- **Pairwise divergence / matUtils (BTE):** ◐ → ◐ (unchanged).
-- **Pairwise divergence / DendroPy:** ◐ → ◐ (unchanged).
-- **Mean descendants / matUtils (BTE):** blank → ◐ —
-  `count_clades_inclusive`.
-- **Variant / genotype iteration / ARGneedle-lib:** blank → ◐ —
-  `get_mutations_matrix`, `get_genotype`.
-- **Haplotype reconstruction / matUtils (BTE):** ✓ → ✓ (unchanged).
-- **Mutation simulation / ARGneedle-lib:** blank → ✓ —
-  `generate_mutations`.
-- **Mutation simulation / DendroPy:** ◐ → ✓ —
-  `simulate_discrete_chars` is general.
-- **Mutation simulation / tskit:** ✓ → ◐ — provided via the
-  `msprime.sim_mutations` companion, not tskit itself.
-- **Mutation placement / ARGneedle-lib:** blank → ✓ —
-  `map_genotype_to_ARG` family.
-
