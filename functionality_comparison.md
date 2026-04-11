@@ -169,9 +169,11 @@ caveats relative to the tskit equivalent.
   but RF is the standard metric so this still counts as full support.
 
 ### Tree balance and shape statistics
-- **tskit (◐):** tskit exposes the underlying counts
-  (`Tree.num_descendants`, traversal) but does not ship a Colless or
-  Sackin index; the user must compute them. Marked partial.
+- **tskit (✓):** [`Tree.colless_index`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.colless_index),
+  [`Tree.sackin_index`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.sackin_index),
+  [`Tree.b1_index`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.b1_index),
+  and [`Tree.b2_index`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.b2_index)
+  cover the standard balance/imbalance indices.
 - **ARGneedle-lib (blank):** no balance metrics exposed.
 - **matUtils/BTE (◐):** `MATree.tree_entropy` reports per-split
   entropy and `count_clades_inclusive` gives clade sizes — usable as
@@ -388,21 +390,6 @@ caveats relative to the tskit equivalent.
 - **DendroPy (blank):** sequences are stored verbatim in
   `CharacterMatrix`; no reconstruction from a tree.
 
-### Mutation simulation on trees
-- **tskit (◐):** tskit can carry mutations and run mutation models
-  via the related `msprime.sim_mutations`/`pyslim` ecosystem rather
-  than tskit itself; the library exposes the mutation model machinery
-  but does not bundle a top-level `simulate_mutations` entry point.
-  Counted as partial within tskit proper.
-- **ARGneedle-lib (✓):** `arg_needle_lib.generate_mutations` and
-  `generate_m_mutations` simulate Poisson mutations on the ARG.
-  Promoted from blank.
-- **matUtils/BTE (blank):** no mutation simulation; mutations are
-  the input data, not generated.
-- **DendroPy (✓):** `dendropy.model.discrete.simulate_discrete_chars`
-  simulates character evolution on a tree under standard substitution
-  models. Promoted from ◐ to ✓ since the support is general.
-
 ### Mutation placement / parsimony
 - **tskit (✓):** [`Tree.map_mutations`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.map_mutations)
   performs Hartigan parsimony to place mutations on a tree.
@@ -491,8 +478,6 @@ reason.
   `kc_topology` and the `metrics` module compute KC² and scaled RF.
 - **Tree topology comparison / matUtils (BTE):** ◐ → blank — no
   RF/KC implementation in matUtils or BTE.
-- **Tree balance and shape / tskit:** ✓ → ◐ — Colless/Sackin not
-  shipped; users compute from descendant counts.
 - **Tree balance and shape / matUtils (BTE):** blank → ◐ —
   `tree_entropy` and `count_clades_inclusive` provide partial
   shape information.
