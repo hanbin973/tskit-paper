@@ -208,12 +208,12 @@ serialization format.
 ### Iterate trees along a genome
 - **tskit (✓):** [`TreeSequence.trees`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.trees)
   iterator and [`TreeSequence.breakpoints`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.breakpoints).
-- **ARGneedle-lib (◐):** the ARG is intrinsically a recombination
-  graph and the C++ side iterates local trees via stab queries
-  (e.g. `bitset_overlap_stab`, `stab_return_all_bitsets`), but the
-  Python API does not expose a clean per-tree iterator — the
+- **ARGneedle-lib (blank):** the C++ side iterates local trees via
+  stab queries (e.g. `bitset_overlap_stab`, `stab_return_all_bitsets`),
+  but the Python API does not expose a per-tree iterator. The
   documented route to per-tree analysis is `arg_needle_lib.arg_to_tskit`
-  followed by tskit's own iterator.
+  followed by tskit's own iterator, so the operation is not
+  natively available.
 - **matUtils/BTE (blank):** the data model is a single phylogeny,
   not a sequence of trees along a genome; no notion of recombination.
 - **DendroPy (blank):** same — single tree or list of trees, no
@@ -223,10 +223,11 @@ serialization format.
 - **tskit (✓):** [`Tree.preorder`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.preorder),
   [`Tree.postorder`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.postorder),
   [`Tree.timeasc`/`timedesc`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.timeasc).
-- **ARGneedle-lib (◐):** the C++ `arg_traversal.hpp` machinery
+- **ARGneedle-lib (blank):** the C++ `arg_traversal.hpp` machinery
   traverses ARG nodes (`time_efficient_visit`), but no Python-level
-  pre/post-order iterator over local trees is exposed; users convert
-  to tskit for traversal.
+  pre/post-order iterator over local trees is exposed. Users
+  convert to tskit for traversal, so the operation is not natively
+  available.
 - **matUtils/BTE (✓):** `MATree.depth_first_expansion` (pre-order)
   and `MATree.breadth_first_expansion`.
 - **DendroPy (✓):** `Tree.preorder_node_iter`, `postorder_node_iter`,
@@ -282,7 +283,7 @@ serialization format.
 
 ---
 
-## 4. Tree-sequence editing
+## 4. ARG/tree editing
 
 ### Simplify (sample-restricted history)
 - **tskit (✓):** [`TreeSequence.simplify`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.simplify).
@@ -407,11 +408,10 @@ serialization format.
 ### IBD segment extraction
 - **tskit (✓):** [`TreeSequence.ibd_segments`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.ibd_segments)
   with multiple `within`/`between`, length, and MRCA filters.
-- **ARGneedle-lib (◐):** the library has no documented IBD-segment
-  extractor in its Python API; the practical route is
-  `arg_to_tskit` followed by `tskit.TreeSequence.ibd_segments`.
-  Downgraded from the table's first-pass ✓ because the operation is
-  not native.
+- **ARGneedle-lib (blank):** the library has no IBD-segment
+  extractor in its Python API. The practical route is
+  `arg_to_tskit` followed by `tskit.TreeSequence.ibd_segments`,
+  but the operation is not natively available.
 - **matUtils/BTE (blank):** not applicable to a single phylogeny.
 - **DendroPy (blank):** not applicable.
 
