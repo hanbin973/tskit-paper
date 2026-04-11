@@ -11,6 +11,9 @@
 \usepackage{authblk}
 \usepackage{tabularray}
 \usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{multibib}
+\newcites{supp}{Supplementary References}
 
 % Make affiliations run inline
 \renewcommand\Affilfont{\small}
@@ -202,5 +205,29 @@ publication according to data from OpenAlex
 
 \input{tools_table.tex}
 
+\subsection*{Overview of tskit's functionality}
+To give a sense of the breadth of functionality provided by tskit,
+Table S2 enumerates representative operations grouped into eight
+broad categories that mirror the structure of the tskit API.
+There is no direct competitor to tskit, so a head-to-head feature
+comparison is not possible; instead, we contrast tskit with three
+libraries that target adjacent niches:
+ARGneedle-lib\citesupp{zhang2023biobank}, which infers and analyses
+ancestral recombination graphs from biobank-scale data;
+matUtils\citesupp{mcbroome2021matutils}, part of the Big Tree Editor
+(BTE) toolkit for manipulating mutation-annotated trees of
+SARS-CoV-2;
+and DendroPy\citesupp{sukumaran2010dendropy}, a long-established
+general-purpose phylogenetic scripting library.
+For each operation we mark whether the comparison library offers a
+comparable feature: \checkmark{} denotes full support, $\circ$
+denotes partial or restricted support, and a blank cell denotes
+none. The list is illustrative rather than exhaustive and reflects
+library state at the time of writing.
+
+\input{functionality_table.tex}
+
+\bibliographystylesupp{naturemag}
+\bibliographysupp{paper}
 
 \end{document}
