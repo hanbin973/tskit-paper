@@ -211,18 +211,17 @@ Table S2 enumerates representative operations grouped into eight
 broad categories that mirror the structure of the tskit API.
 There is no direct competitor to tskit, so a head-to-head feature
 comparison is not possible; instead, we contrast tskit with three
-libraries that target adjacent niches:
+Python libraries that target adjacent niches:
 ARGneedle-lib\citesupp{zhang2023biobank}, which infers and analyses
 ancestral recombination graphs from biobank-scale data;
-matUtils\citesupp{mcbroome2021matutils}, part of the Big Tree Editor
-(BTE) toolkit for manipulating mutation-annotated trees of
-SARS-CoV-2;
+the BTE interface (\url{https://github.com/jmcbroome/BTE})
+for matUtils\citesupp{mcbroome2021daily},
+a toolkit for manipulating and analysing mutation-annotated trees of SARS-CoV-2;
 and DendroPy\citesupp{sukumaran2010dendropy}, a long-established
 general-purpose phylogenetic scripting library.
 For each operation we mark whether the comparison library offers a
-comparable feature: \checkmark{} denotes full support, $\circ$
-denotes partial or restricted support, and a blank cell denotes
-none. The list is illustrative rather than exhaustive and reflects
+comparable feature.
+The list is illustrative rather than exhaustive and reflects
 library state at the time of writing.
 
 \input{functionality_table.tex}
