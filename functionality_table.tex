@@ -1,6 +1,6 @@
 \begin{tblr}[
         long,
-        caption={Overview of tskit's functionality, grouped into eight
+        caption={Overview of tskit's functionality, grouped into nine
             broad categories. Every operation listed is implemented in
             tskit; the columns indicate whether each comparison library
             offers a comparable feature: \checkmark{} denotes full
@@ -12,46 +12,46 @@
         rowhead=1,
         width=\linewidth,
         colsep=3pt,
+        vlines={gray!40, 0.3pt},
+        hlines={gray!40, 0.3pt},
+        hline{1,2,Z}={black, 0.5pt},
          }
 \hline
 Operation & ARGneedle-lib & matUtils (BTE) & DendroPy \\
 \hline
+\SetRow{bg=gray!15}
 \SetCell[c=4]{c} \textbf{Data model}\\
-\hline[dashed]
 Lossless ARG representation & \checkmark & & \\
 Mutations integrated with topology & \checkmark & \checkmark & \\
 Integrated reference sequence & & & \\
 Individual / ploidy abstraction & $\circ$ & & \\
 Population structure encoding & & & \\
 Columnar (NumPy) data access & & & \\
-\hline[dashed]
+\SetRow{bg=gray!15}
 \SetCell[c=4]{c} \textbf{File formats}\\
-\hline[dashed]
 Efficient binary format & \checkmark & \checkmark & \\
 VCF export & & \checkmark & \\
 Newick export & \checkmark & \checkmark & \checkmark \\
 FASTA export & & & \checkmark \\
 NEXUS export & & & \checkmark \\
-\hline[dashed]
+\SetRow{bg=gray!15}
 \SetCell[c=4]{c} \textbf{Tree operations}\\
-\hline[dashed]
 Iterate trees along a genome & & & \\
 Tree traversal (pre-/post-order) & & \checkmark & \checkmark \\
 MRCA and common-ancestor queries & \checkmark & \checkmark & \checkmark \\
 Branch length and total branch length & $\circ$ & \checkmark & \checkmark \\
 Tree topology comparison (KC, RF) & \checkmark & & \checkmark \\
 Tree balance and shape statistics & & $\circ$ & \checkmark \\
-\hline[dashed]
+Tree topology enumeration and ranking & & & \\
+\SetRow{bg=gray!15}
 \SetCell[c=4]{c} \textbf{ARG/tree editing}\\
-\hline[dashed]
 Simplify (sample-restricted history) & & & \\
 Subset by sample or clade & & \checkmark & \checkmark \\
 Union of tree sequences & & & \\
 Keep / delete genomic intervals & $\circ$ & & \\
 Trim flanking regions & \checkmark & & \\
-\hline[dashed]
+\SetRow{bg=gray!15}
 \SetCell[c=4]{c} \textbf{Population-genetic statistics}\\
-\hline[dashed]
 Nucleotide diversity ($\pi$), segregating sites & & $\circ$ & \checkmark \\
 Tajima's $D$ & & & \checkmark \\
 $F_{ST}$ and divergence & & & \\
@@ -59,31 +59,29 @@ $f$-statistics ($f_2$, $f_3$, $f_4$, Patterson's $D$) & & & \\
 Allele frequency spectrum (one-way and joint) & & & $\circ$ \\
 Linkage disequilibrium & & & \\
 Branch-mode statistics on trees & & & \\
-\hline[dashed]
+\SetRow{bg=gray!15}
 \SetCell[c=4]{c} \textbf{Ancestry and relatedness}\\
-\hline[dashed]
 Link ancestors & & & \\
 IBD segment extraction & & & \\
 Genealogical nearest neighbours (GNN) & & & \\
 Genetic relatedness matrix & \checkmark & & \\
+Genetic relatedness matrix-vector product & $\circ$ & & \\
+Principal components analysis & & & \\
 Pairwise divergence / coalescence times & \checkmark & $\circ$ & $\circ$ \\
 Mean descendants & & $\circ$ & \\
 Extend haplotypes & & & \\
-\hline[dashed]
+\SetRow{bg=gray!15}
 \SetCell[c=4]{c} \textbf{Mutations and variants}\\
-\hline[dashed]
 Variant / genotype iteration & $\circ$ & \checkmark & \\
 Haplotype reconstruction & & \checkmark & \\
 Mutation placement / parsimony & \checkmark & \checkmark & \\
-\hline[dashed]
+\SetRow{bg=gray!15}
 \SetCell[c=4]{c} \textbf{Visualisation}\\
-\hline[dashed]
 SVG tree drawing & & & \\
 Tree-sequence (multi-tree) visualisation & & & \\
 ASCII / text tree rendering & & & \checkmark \\
-\hline[dashed]
+\SetRow{bg=gray!15}
 \SetCell[c=4]{c} \textbf{Metadata and provenance}\\
-\hline[dashed]
 Structured metadata with schemas & & $\circ$ & \\
 Provenance recording and validation & & & \\
 \hline
