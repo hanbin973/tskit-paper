@@ -139,13 +139,14 @@ one million diploids on human chromosome~21 completes in
 under 18~seconds, and the associated randomised PCA scales to
 $2^{20}$ samples where genotype-matrix PCA runs out of memory.
 \citet{lee2026genetic} apply this
-last operation to genomic prediction and provide the one recent
+last operation to fitting linear mixed models and provide the one recent
 head-to-head benchmark of tskit against another library,
 comparing the ARG-based GRM with the corresponding implementation
 in ARGneedle-lib~\citep{zhang2023biobank},
 and reporting that tskit is one to two orders of
 magnitude faster for GRM--vector products across a wide range of
-mutation rates.
+mutation rates,
+while using an exact algorithm that avoids Monte-Carlo approximation.
 Alongside these core additions, the exposure of tskit's
 traversal orders to Numba~\citep{lam2015numba} has allowed
 Python-level user code to JIT-compile ARG traversals at close to C
