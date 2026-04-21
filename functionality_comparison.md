@@ -281,6 +281,25 @@ serialisation format.
 - **DendroPy (✓):** `treemeasure.colless_tree_imbalance`,
   `sackin_index`, `pybus_harvey_gamma`.
 
+### Tree topology enumeration and ranking
+- **tskit (✓):** [`Tree.rank`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.rank)
+  and [`Tree.unrank`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.Tree.unrank)
+  map each leaf-labelled tree to a canonical `(shape, label)` integer
+  pair and back;
+  [`tskit.all_trees`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.all_trees),
+  [`all_tree_shapes`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.all_tree_shapes),
+  and [`all_tree_labellings`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.all_tree_labellings)
+  enumerate all topologies of a given size; and
+  [`TopologyCounter`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TopologyCounter)
+  tabulates topology frequencies across a tree sequence.
+- **ARGneedle-lib (blank):** no canonical topology rank/unrank or
+  enumeration API.
+- **matUtils/BTE (blank):** operates on a single
+  mutation-annotated tree; no enumeration of alternative topologies.
+- **DendroPy (blank):** the `dendropy.calculate.statistics.rank`
+  utility is a numerical ranking function unrelated to tree
+  topology; no canonical topology rank/unrank or enumeration.
+
 ---
 
 ## 4. ARG/tree editing
@@ -438,12 +457,36 @@ serialisation format.
 ### Genetic relatedness matrix
 - **tskit (✓):** [`TreeSequence.genetic_relatedness_matrix`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.genetic_relatedness_matrix),
   [`genetic_relatedness`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.genetic_relatedness),
-  [`genetic_relatedness_weighted`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.genetic_relatedness_weighted),
-  [`genetic_relatedness_vector`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.genetic_relatedness_vector).
+  [`genetic_relatedness_weighted`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.genetic_relatedness_weighted).
 - **ARGneedle-lib (✓):** `arg_needle_lib.exact_arg_grm` and
   `monte_carlo_arg_grm` (in `arg_needle_lib.grm`) are headline
   features and are accompanied by `gower_center`, `row_column_center`,
   and `write_grm` for downstream use.
+- **matUtils/BTE (blank):** not exposed.
+- **DendroPy (blank):** not exposed.
+
+### Genetic relatedness matrix-vector product
+- **tskit (✓):** [`TreeSequence.genetic_relatedness_vector`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.genetic_relatedness_vector)
+  computes the product of the branch GRM with one or more vectors
+  directly from the tree sequence without materialising the full
+  matrix, giving $O(n + n_T \log n)$ scaling rather than $O(n^2)$.
+- **ARGneedle-lib (◐):** no dedicated matrix-vector API; the
+  equivalent product can be obtained only by first materialising
+  the full matrix via `exact_arg_grm` or `monte_carlo_arg_grm` and
+  then multiplying externally, which forfeits the asymptotic
+  benefit of the direct tree-traversal approach.
+- **matUtils/BTE (blank):** not exposed.
+- **DendroPy (blank):** not exposed.
+
+### PCA from tree sequences
+- **tskit (✓):** [`TreeSequence.pca`](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.pca)
+  computes a randomised PCA directly from the tree sequence by
+  repeatedly applying the branch-mode GRM-vector product, without
+  materialising the full relatedness matrix.
+- **ARGneedle-lib (blank):** no direct PCA API; downstream PCA
+  would require materialising a GRM via `exact_arg_grm` /
+  `monte_carlo_arg_grm` and then calling an external linear-algebra
+  library.
 - **matUtils/BTE (blank):** not exposed.
 - **DendroPy (blank):** not exposed.
 

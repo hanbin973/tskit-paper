@@ -10,6 +10,7 @@
 \usepackage{tabularray}
 \usepackage{graphicx}
 \usepackage{amssymb}
+\usepackage{xcolor}
 
 % Make affiliations run inline
 \renewcommand\Affilfont{\small}
@@ -54,23 +55,7 @@ publication according to data from OpenAlex
 \input{tools_table.tex}
 
 \subsection*{Tskit functionality and benchmarks}
-To give a sense of the breadth of functionality provided by tskit,
-Table S2 lists properties and operations it supports, grouped
-into nine broad categories.
-There is no direct competitor to tskit, so a head-to-head feature
-comparison is not possible. Instead, we contrast it with three
-Python libraries from adjacent niches:
-ARGneedle-lib~\citep{zhang2023biobank}, which infers and analyses
-ancestral recombination graphs from biobank-scale data;
-the BTE interface (\url{https://github.com/jmcbroome/BTE})
-for matUtils~\citep{mcbroome2021daily},
-a toolkit for manipulating and analysing mutation-annotated trees
-of SARS-CoV-2; and DendroPy~\citep{sukumaran2010dendropy}, a
-long-established general-purpose phylogenetic scripting library.
-For each operation we mark whether the comparison library offers a
-fully comparable feature (\checkmark), a partial or restricted
-analogue ($\circ$), or none (blank). Marks reflect library state
-at the time of writing.
+
 
 Tskit is the result of more than a decade of sustained development,
 and its distinctive operations have been introduced in a
@@ -87,61 +72,118 @@ The practical consequence was demonstrated in a benchmark
 where using the succinct tree sequence format and sequential
 iteration was more than a million times faster than reading the
 same trees individually from Newick using the standard libraries
-available at the time, for a simulation of 100,000 samples.
+available at the time, for a simulation of 100,000 samples, with
+storage requirements reduced by roughly four orders of magnitude.
 The data model was subsequently generalised to enable
-forwards-time simulation~\citep{kelleher2018efficient}. This
-publication
+forwards-time simulation~\citep{kelleher2018efficient}.
+This publication
 also introduced the columnar tables API and was the first paper in
 which the tskit library itself appeared as a distinct component.
-That paper gave a rigorous time- and space-complexity analysis of
-the ``simplify'' operation, which restricts an ARG to the
-history ancestral to a specified set of samples. ARG simplification
-is a fundamental operation with many applications~\citep{wong2024general},
-as  well as being the primitive operation making forwards-time simulation of ARGs
+That paper introduced the ``simplify'' operation, which restricts an ARG to the
+history ancestral to a specified set of samples, showing that its
+time complexity is linear in the number of input edges.
+ARG simplification is a fundamental operation with many
+applications~\citep{wong2024general},
+as well as being the primitive operation making forwards-time simulation of ARGs
 tractable~\citep{haller2018tree}.
+The pyslim library~\citep{gopalan2025bridging} bridges SLiM and
+tskit at the Python level, operationalising these hybrid
+workflows together using tskit's ``union'' operation for
+stitching together tree sequences from independent simulations;
+this combination has enabled whole-chromosome forward simulations
+of the entire 10-million-year history of the great
+apes~\citep{rodrigues2024shared} and
+whole-genome human simulations under realistic demographic and selection
+models~\citep{haller2025simHumanity}.
 
 Following this foundational work, tskit
 accumulated a sequence of new operations, each first described in its own
 publication. Motivated by needing to summarise biobank-scale inferred ARGs
-with uncalibrated node times, \citet{kelleher2019inferring} introduced the
-the genealogical nearest neighbours (GNN) statistic.
+with uncalibrated node times, \citet{kelleher2019inferring} introduced
+the genealogical nearest neighbours (GNN) statistic, and
+demonstrated that the tree-sequence encoding compresses inferred
+biobank-scale data by orders of magnitude relative to VCF.
 \citet{ralph2020efficiently} then introduced a general API for
 population-genetic statistics built around a duality theorem
 relating site-based and branch-based statistics.
 The benchmarks in that paper show
-speedups of up to five orders of magnitude against
-genotype-matrix implementations at a fraction of the memory footprint.
+speedups of roughly three orders of magnitude, together with
+a $\sim 200$-fold reduction in memory footprint, against
+genotype-matrix implementations at a sample size of one million haplotypes.
+\citet{wohns2022unified} subsequently introduced the tsdate method
+for estimating ages of ancestral nodes from an inferred ARG under
+a mutational-clock prior, and used it to combine 3{,}601 modern
+and eight high-coverage ancient human genomes into a single
+unified genealogy.
+The msprime~1.0 release~\citep{baumdicker2022efficient} provided further
+illustrations of the flexibility of the data model,
+including simulations of gene conversion and complete ARGs.
 Individual and pedigree abstractions were added to the tskit data
 model by \citet{andersontrocme2023genes}, extending what a node or
 individual in an ARG can represent.
-\citet{tsambos2023link} introduced the ``link\_ancestors"
+\citet{tsambos2023link} introduced the ``link\_ancestors''
 operation, a new primitive for extracting local-ancestry tracts
 from an ARG.
 
-[TODO this paragraph needs heavy revision, it's quite weak.]
-A further class of operation became possible once the core
-traversal orders were exposed to Numba~\citep{lam2015numba},
-allowing Python-level user code to JIT-compile ARG traversals at
-close to C speed. This enabled downstream packages
-like tstrait~\citep{tagami2024tstrait}
-and tsbrowse~\citep{karthikeyan2025tsbrowse} to perform large-scale
-computations using only Python code.
-\citet{fritze2026forest} added the
-``extend\_haplotypes'' function to tskit.
+Development of the core API has continued through
+2024--2026. \citet{fritze2026forest} added the
+``extend\_haplotypes'' function to tskit, which restores
+unary-node spans lost to simplification or inference and roughly
+halves the number of edges in typical ARGs, with corresponding
+reductions in statistic-computation time.
 \citet{lehmann2026on}
 introduced the operation of computing genetic relatedness matrices
-(GRMs) directly from an ARG. \citet{lee2026genetic} apply this
+(GRMs) directly from an ARG, expressing GRM--vector products as
+tree traversals: the branch GRM--vector product for
+one million diploids on human chromosome~21 completes in
+under 18~seconds, and the associated randomised PCA scales to
+$2^{20}$ samples where genotype-matrix PCA runs out of memory.
+\citet{lee2026genetic} apply this
 last operation to genomic prediction and provide the one recent
 head-to-head benchmark of tskit against another library,
 comparing the ARG-based GRM with the corresponding implementation
-in ARGneedle-lib. Tskit~1.0 is the point at which this
+in ARGneedle-lib~\citep{zhang2023biobank},
+and reporting that tskit is one to two orders of
+magnitude faster for GRM--vector products across a wide range of
+mutation rates.
+Alongside these core additions, the exposure of tskit's
+traversal orders to Numba~\citep{lam2015numba} has allowed
+Python-level user code to JIT-compile ARG traversals at close to C
+speed, enabling downstream packages such as
+tstrait~\citep{tagami2024tstrait} and tsbrowse~\citep{karthikeyan2025tsbrowse}
+to perform biobank-scale computations in pure Python.
+Real-data applications have further stressed the data model
+outside its original coalescent-simulation setting: an ARG for
+2.48~million SARS-CoV-2 genomes inferred with sc2ts occupies only
+32\,MiB and loads into memory in about half a
+second~\citep{zhan2025pandemic}; and recent work has dated
+contiguous ARGs spanning 14\% of the human genome for 47,535
+Genomics England participants, estimating ages for 23.2 million
+variants~\citep{pope2026tracing}.
+
+Tskit~1.0 is the point at which this
 decade-long accumulation of operations is brought together and
-stabilised under a single, guaranteed API. The many blank cells
+stabilised under a single, guaranteed API.
+Table S2 lists properties and operations it supports, grouped
+into nine broad categories.
+We contrast tskit's functionality with three
+Python libraries from adjacent niches:
+ARGneedle-lib~\citep{zhang2023biobank}, which infers and analyses
+ancestral recombination graphs from biobank-scale data;
+the BTE interface (\url{https://github.com/jmcbroome/BTE})
+for matUtils~\citep{mcbroome2021daily},
+a toolkit for manipulating and analysing mutation-annotated trees
+of SARS-CoV-2; and DendroPy~\citep{sukumaran2010dendropy}, a
+mature and popular phylogenetic scripting library.
+For each operation we mark whether the comparison library offers a
+fully comparable feature (\checkmark), a partial or restricted
+analogue ($\circ$), or none (blank). Marks reflect library state
+at the time of writing.
+The many blank cells
 in Table S2 are not an artefact of a narrow choice of comparison
 libraries: most of the operations listed above were defined by the
 publications that introduced them and simply have no analogue
-elsewhere, which is also why a direct head-to-head benchmark suite
-against a competing library is not possible.
+elsewhere.
 
 \input{functionality_table.tex}
 
